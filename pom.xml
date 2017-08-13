@@ -59,6 +59,12 @@
 			<artifactId>commons-email</artifactId>
 			<version>1.4</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.tomcat</groupId>
+			<artifactId>tomcat-catalina</artifactId>
+			<version>9.0.0.M25</version>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<finalName>task-tracker</finalName>

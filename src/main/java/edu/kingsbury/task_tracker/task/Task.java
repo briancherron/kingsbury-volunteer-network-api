@@ -47,7 +47,7 @@ public class Task {
 	/**
 	 * The task users.
 	 */
-	private List<User> users;
+	private List<TaskUser> users;
 	
 	/**
 	 * The task partners.
@@ -165,14 +165,14 @@ public class Task {
 	/**
 	 * @return the users
 	 */
-	public List<User> getUsers() {
+	public List<TaskUser> getUsers() {
 		return this.users;
 	}
 
 	/**
 	 * @param users the users to set
 	 */
-	public void setUsers(List<User> users) {
+	public void setUsers(List<TaskUser> users) {
 		this.users = users;
 	}
 

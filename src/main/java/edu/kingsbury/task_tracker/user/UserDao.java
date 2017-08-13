@@ -56,6 +56,16 @@ public interface UserDao {
 	User update(User user);
 	
 	/**
+	 * Changes a user's password.
+	 * 
+	 * @param id the user id
+	 * @param newPassword the new password
+	 * @param currentPassword the current password
+	 * @return <code>true</code> if the password is changed
+	 */
+	boolean changePassword(long id, String newPassword, String currentPassword);
+	
+	/**
 	 * Deletes a user.
 	 * 
 	 * @param id the user id

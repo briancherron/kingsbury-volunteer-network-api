@@ -54,6 +54,11 @@
 			<artifactId>postgresql</artifactId>
 			<version>42.1.3</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-email</artifactId>
+			<version>1.4</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<finalName>task-tracker</finalName>

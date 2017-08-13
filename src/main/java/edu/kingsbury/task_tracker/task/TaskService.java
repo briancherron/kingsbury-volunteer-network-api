@@ -1,5 +1,11 @@
 package edu.kingsbury.task_tracker.task;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.mail.internet.AddressException;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BeanParam;
 import javax.ws.rs.DELETE;
@@ -13,6 +19,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+
+import org.apache.commons.mail.EmailException;
+
+import edu.kingsbury.task_tracker.Feedback;
 
 /**
  * Web service for {@link Task}.
@@ -28,10 +38,16 @@ public class TaskService {
 	private TaskDao taskDao;
 	
 	/**
+	 * The task validator.
+	 */
+	private TaskValidator taskValidator;
+	
+	/**
 	 * Constructor initializes the dao.
 	 */
 	public TaskService() {
 		this.taskDao = new TaskPostgresDao();
+		this.taskValidator = new TaskValidator();
 	}
 
 	/**
@@ -88,17 +104,36 @@ public class TaskService {
 	 * @param task the task to create
 	 * @param request the request
 	 * @return the created task
+	 * @throws EmailException 
+	 * @throws AddressException 
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
 	 */
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response create(
 		Task task,
-		@Context HttpServletRequest request) {
+		@Context HttpServletRequest request) throws EmailException, AddressException, FileNotFoundException, IOException {
 		
-		return Response
-			.status(Response.Status.OK)
-			.entity(this.taskDao.create(task, request.getUserPrincipal().getName()))
-			.build();
+		Feedback feedback = this.taskValidator.validate(task);
+		if (feedback.isValid()) {
+			Task createdTask = this.taskDao.create(task, request.getUserPrincipal().getName());
+			for (TaskUser user : createdTask.getUsers()) {
+				if (user.getStatusId() == 1) {
+					TaskInvitation.send(createdTask.getId(), createdTask.getName(), user.getUser());
+				}
+			}
+			
+			return Response
+				.status(Response.Status.OK)
+				.entity(createdTask)
+				.build();
+		} else {
+			return Response
+				.status(Response.Status.BAD_REQUEST)
+				.entity(feedback)
+				.build();
+		}
 	}
 	
 	/**
@@ -108,6 +143,9 @@ public class TaskService {
 	 * @param id the task id
 	 * @param request the request
 	 * @return the updated task
+	 * @throws EmailException 
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
 	 */
 	@PUT
 	@Path("/{id}")
@@ -115,12 +153,36 @@ public class TaskService {
 	public Response update(
 		Task task,
 		@PathParam("id") long id,
-		@Context HttpServletRequest request) {
+		@Context HttpServletRequest request) throws FileNotFoundException, IOException, EmailException {
 		
-		return Response
-			.status(Response.Status.OK)
-			.entity(this.taskDao.update(task, request.getUserPrincipal().getName()))
-			.build();
+		Feedback feedback = this.taskValidator.validate(task);
+		if (feedback.isValid()) {
+			Task previousTask = this.taskDao.find(id);
+			List<String> invitedEmails = new ArrayList<String>();
+			for (TaskUser taskUser : previousTask.getUsers()) {
+				if (taskUser.getStatusId() == 1) {
+					invitedEmails.add(taskUser.getUser().getEmail());
+				}
+			}
+			
+			Task updatedTask = this.taskDao.update(task, request.getUserPrincipal().getName());
+			
+			for (TaskUser taskUser : updatedTask.getUsers()) {
+				if (taskUser.getStatusId() == 1 && !invitedEmails.contains(taskUser.getUser().getEmail())) {
+					TaskInvitation.send(updatedTask.getId(), updatedTask.getName(), taskUser.getUser());
+				}
+			}
+			
+			return Response
+				.status(Response.Status.OK)
+				.entity(updatedTask)
+				.build();
+		} else {
+			return Response
+				.status(Response.Status.BAD_REQUEST)
+				.entity(feedback)
+				.build();
+		}
 	}
 	
 	/**

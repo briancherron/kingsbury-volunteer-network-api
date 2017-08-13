@@ -12,6 +12,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import edu.kingsbury.task_tracker.Feedback;
+
 /**
  * Web service for {@link Category}.
  * 
@@ -26,10 +28,16 @@ public class CategoryService {
 	private CategoryDao categoryDao;
 	
 	/**
+	 * The category validator.
+	 */
+	private CategoryValidator categoryValidator;
+	
+	/**
 	 * Constructor initializes the dao.
 	 */
 	public CategoryService() {
 		this.categoryDao = new CategoryPostgresDao();
+		this.categoryValidator = new CategoryValidator();
 	}
 
 	/**
@@ -77,10 +85,18 @@ public class CategoryService {
 		Category category,
 		@Context HttpServletRequest request) {
 		
-		return Response
-			.status(Response.Status.OK)
-			.entity(this.categoryDao.create(category))
-			.build();
+		Feedback feedback = this.categoryValidator.validate(category);
+		if (feedback.isValid()) {
+			return Response
+				.status(Response.Status.OK)
+				.entity(this.categoryDao.create(category))
+				.build();
+		} else {
+			return Response
+				.status(Response.Status.BAD_REQUEST)
+				.entity(feedback)
+				.build();
+		}
 	}
 	
 	/**
@@ -99,10 +115,18 @@ public class CategoryService {
 		Category category,
 		@Context HttpServletRequest request) {
 		
-		return Response
-			.status(Response.Status.OK)
-			.entity(this.categoryDao.update(category))
-			.build();
+		Feedback feedback = this.categoryValidator.validate(category);
+		if (feedback.isValid()) {
+			return Response
+				.status(Response.Status.OK)
+				.entity(this.categoryDao.update(category))
+				.build();
+		} else {
+			return Response
+				.status(Response.Status.BAD_REQUEST)
+				.entity(feedback)
+				.build();
+		}
 	}
 	
 	/**

@@ -4,12 +4,16 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang3.StringUtils;
+
+import edu.kingsbury.task_tracker.user.PasswordChange;
 import edu.kingsbury.task_tracker.user.User;
 import edu.kingsbury.task_tracker.user.UserDao;
 import edu.kingsbury.task_tracker.user.UserPostgresDao;
@@ -76,6 +80,33 @@ public class AuthenticationService {
 		return Response
 			.status(success ? Response.Status.OK : Response.Status.NOT_FOUND)
 			.entity(success ? this.userDao.find(request.getUserPrincipal().getName()) : null)
+			.build();
+	}
+	
+	@Path("/change-password")
+	@PUT
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response changePassword(
+		PasswordChange passwordChange,
+		@Context HttpServletRequest request) {
+		
+		User user = this.userDao.find(request.getUserPrincipal().getName());
+		boolean matches = StringUtils.equals(passwordChange.getNewPassword(), passwordChange.getNewPasswordConfirm());
+		boolean success = false;
+		if (matches) {
+			success = this.userDao.changePassword(user.getId(), passwordChange.getNewPassword(), passwordChange.getCurrentPassword()); 
+		}
+		
+		Response.Status status = Response.Status.OK;
+		if (!matches) {
+			status = Response.Status.BAD_REQUEST;
+		} else if (!success) {
+			status = Response.Status.NOT_FOUND;
+		}
+		
+		return Response
+			.status(status)
+			.entity(user)
 			.build();
 	}
 	

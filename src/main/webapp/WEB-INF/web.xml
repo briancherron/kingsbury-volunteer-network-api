@@ -56,9 +56,9 @@
 	</security-constraint>
 
 	<security-role>
-		<role-name>Admin</role-name>
+		<role-name>admin</role-name>
 	</security-role>
 	<security-role>
-		<role-name>Standard</role-name>
+		<role-name>standard</role-name>
 	</security-role>
 </web-app>

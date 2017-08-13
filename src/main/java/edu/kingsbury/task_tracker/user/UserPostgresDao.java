@@ -243,6 +243,33 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		
 		return user;
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean changePassword(long id, String newPassword, String currentPassword) {
+		Connection connection = null;
+		PreparedStatement preparedStatement = null;
+		ResultSet resultSet = null;
+		boolean changed = false;
+		
+		try {
+			connection = this.getDataSource().getConnection();
+			preparedStatement = connection.prepareStatement(
+				"update task_tracker.user set password= ? where id = ? and password= ?");
+			preparedStatement.setString(1, JDBCRealm.Digest(newPassword, "MD5", "UTF-8"));
+			preparedStatement.setLong(2, id);
+			preparedStatement.setString(3, JDBCRealm.Digest(currentPassword, "MD5", "UTF-8"));
+			changed = preparedStatement.executeUpdate() == 1;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			this.close(connection, preparedStatement, resultSet);
+		}
+		
+		return changed;
+	}
 
 	/**
 	 * {@inheritDoc}

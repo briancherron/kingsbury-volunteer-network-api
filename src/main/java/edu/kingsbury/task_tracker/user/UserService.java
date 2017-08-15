@@ -13,6 +13,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import edu.kingsbury.task_tracker.Feedback;
+
 /**
  * Web service for {@link User}.
  * 
@@ -27,10 +29,16 @@ public class UserService {
 	private UserDao userDao;
 	
 	/**
+	 * The user validator.
+	 */
+	private UserValidator userValidator;
+	
+	/**
 	 * Constructor initializes the dao.
 	 */
 	public UserService() {
 		this.userDao = new UserPostgresDao();
+		this.userValidator = new UserValidator();
 	}
 
 	/**
@@ -107,12 +115,19 @@ public class UserService {
 		User user,
 		@Context HttpServletRequest request) {
 		
-		//TODO: validate the user
+		Feedback feedback = this.userValidator.validateUser(user, false);
+		if (feedback.isValid()) {
+			return Response
+				.status(Response.Status.OK)
+				.entity(this.userDao.update(user))
+				.build();
+		} else {
+			return Response
+				.status(Response.Status.BAD_REQUEST)
+				.entity(feedback)
+				.build();
+		}
 		
-		return Response
-			.status(Response.Status.OK)
-			.entity(this.userDao.update(user))
-			.build();
 	}
 	
 	@Path("/join")
@@ -123,22 +138,29 @@ public class UserService {
 		@Context HttpServletRequest request) throws ServletException {
 		
 		// first validate the user
-		//TODO: validate the user
+		Feedback feedback = this.userValidator.validateUser(user, true);
+		if (feedback.isValid()) {
 		
-		// then update the user
-		this.userDao.update(user);
-		
-		// then update the user's password
-		this.userDao.changePassword(user.getId(), user.getPassword(), null);
-		
-		// then log the user in and update the last login
-		request.login(user.getEmail(), user.getPassword());
-		this.userDao.updateLastLogin(user.getEmail());
-		
-		return Response
-			.status(Response.Status.OK)
-			.entity(this.userDao.find(user.getId()))
-			.build();
+			// then update the user
+			this.userDao.update(user);
+			
+			// then update the user's password
+			this.userDao.changePassword(user.getId(), user.getPassword(), null);
+			
+			// then log the user in and update the last login
+			request.login(user.getEmail(), user.getPassword());
+			this.userDao.updateLastLogin(user.getEmail());
+			
+			return Response
+				.status(Response.Status.OK)
+				.entity(this.userDao.find(user.getId()))
+				.build();
+		} else {
+			return Response
+				.status(Response.Status.BAD_REQUEST)
+				.entity(feedback)
+				.build();
+		}
 	}
 	
 	/**

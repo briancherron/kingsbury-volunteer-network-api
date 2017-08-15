@@ -11,12 +11,11 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.apache.commons.lang3.StringUtils;
-
 import edu.kingsbury.task_tracker.user.PasswordChange;
 import edu.kingsbury.task_tracker.user.User;
 import edu.kingsbury.task_tracker.user.UserDao;
 import edu.kingsbury.task_tracker.user.UserPostgresDao;
+import edu.kingsbury.task_tracker.user.UserValidator;
 
 @Path("/auth")
 public class AuthenticationService {
@@ -27,10 +26,16 @@ public class AuthenticationService {
 	private UserDao userDao;
 	
 	/**
+	 * The user validator.
+	 */
+	private UserValidator userValidator;
+	
+	/**
 	 * Constructor initializes the dao.
 	 */
 	public AuthenticationService() {
 		this.userDao = new UserPostgresDao();
+		this.userValidator = new UserValidator();
 	}
 	
 	/**
@@ -91,26 +96,29 @@ public class AuthenticationService {
 		PasswordChange passwordChange,
 		@Context HttpServletRequest request) {
 		
-		//TODO: validate the new password
-		
-		User user = this.userDao.find(request.getUserPrincipal().getName());
-		boolean matches = StringUtils.equals(passwordChange.getNewPassword(), passwordChange.getNewPasswordConfirm());
-		boolean success = false;
-		if (matches) {
-			success = this.userDao.changePassword(user.getId(), passwordChange.getNewPassword(), passwordChange.getCurrentPassword()); 
+		Feedback feedback = this.userValidator.validatePasswordChange(passwordChange);
+		if (feedback.isValid()) {
+			User user = this.userDao.find(request.getUserPrincipal().getName());
+			boolean success = false;
+			success = this.userDao.changePassword(user.getId(), passwordChange.getNewPassword(), passwordChange.getCurrentPassword());
+			if (success) {
+				return Response
+					.status(Response.Status.OK)
+					.entity(user)
+					.build();
+			} else {
+				feedback.getDangerMessages().add("The current password provided is incorrect.");
+				return Response
+					.status(Response.Status.BAD_REQUEST)
+					.entity(feedback)
+					.build();
+			}
+		} else {
+			return Response
+				.status(Response.Status.BAD_REQUEST)
+				.entity(feedback)
+				.build();
 		}
-		
-		Response.Status status = Response.Status.OK;
-		if (!matches) {
-			status = Response.Status.BAD_REQUEST;
-		} else if (!success) {
-			status = Response.Status.NOT_FOUND;
-		}
-		
-		return Response
-			.status(status)
-			.entity(user)
-			.build();
 	}
 	
 	/**

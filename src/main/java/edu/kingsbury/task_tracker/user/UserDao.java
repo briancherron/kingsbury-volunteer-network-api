@@ -1,6 +1,7 @@
 package edu.kingsbury.task_tracker.user;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Data access object for {@link User}.
@@ -23,6 +24,14 @@ public interface UserDao {
 	 * @return the user
 	 */
 	User find(long id);
+	
+	/**
+	 * Finds a user.
+	 * 
+	 * @param invitationKey the invitation key
+	 * @return the user
+	 */
+	User find(UUID invitationKey);
 	
 	/**
 	 * Finds a user.

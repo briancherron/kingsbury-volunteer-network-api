@@ -45,6 +45,7 @@ public class AuthenticationService {
 	public Response loggedIn(
 		@Context HttpServletRequest request) {
 		
+		request.getSession(true);
 		boolean loggedIn = request.getUserPrincipal() != null;
 		
 		return Response
@@ -89,6 +90,8 @@ public class AuthenticationService {
 	public Response changePassword(
 		PasswordChange passwordChange,
 		@Context HttpServletRequest request) {
+		
+		//TODO: validate the new password
 		
 		User user = this.userDao.find(request.getUserPrincipal().getName());
 		boolean matches = StringUtils.equals(passwordChange.getNewPassword(), passwordChange.getNewPasswordConfirm());

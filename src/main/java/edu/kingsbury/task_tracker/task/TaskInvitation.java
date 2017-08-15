@@ -31,7 +31,7 @@ public class TaskInvitation {
 		message.append("<p>You've been invited to volunteer for the following task:<br><br>");
 		message.append("<p>" + taskName + "</p><br><br>");
 		message.append("<p>To participate, click <a href='" + properties.getProperty("taskUrl") + taskId  + "'>here</a>.<br><br>");
-		message.append("<p>Thanks,<br>Kingsbury Volunteer Network</p>");
+		message.append("<p>Thanks,<br>Kingsbury Community Volunteer Network</p>");
 		message.append("</body></html>");
 		email.setMsg(message.toString());
 		

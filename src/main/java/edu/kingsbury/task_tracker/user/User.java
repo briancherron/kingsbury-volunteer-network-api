@@ -2,6 +2,7 @@ package edu.kingsbury.task_tracker.user;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
@@ -68,6 +69,11 @@ public class User {
 	 * Whether the user is deleted.
 	 */
 	private boolean deleted;
+	
+	/**
+	 * The invitation key.
+	 */
+	private UUID invitationKey;
 	
 	/**
 	 * {@inheritDoc}
@@ -229,5 +235,19 @@ public class User {
 	 */
 	public void setDeleted(boolean deleted) {
 		this.deleted = deleted;
+	}
+
+	/**
+	 * @return the invitationKey
+	 */
+	public UUID getInvitationKey() {
+		return this.invitationKey;
+	}
+
+	/**
+	 * @param invitationKey the invitationKey to set
+	 */
+	public void setInvitationKey(UUID invitationKey) {
+		this.invitationKey = invitationKey;
 	}
 }

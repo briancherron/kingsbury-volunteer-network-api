@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.catalina.realm.JDBCRealm;
 
@@ -83,7 +84,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in from task_tracker.user where id = ? and (deleted is null or deleted = false)");
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key from task_tracker.user where id = ? and (deleted is null or deleted = false)");
 			preparedStatement.setLong(1, id);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -96,6 +97,50 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 				user.setLastName(resultSet.getString("last_name"));
 				user.setFacebook(resultSet.getString("facebook"));
 				user.setRecognitionOptIn(resultSet.getBoolean("recognition_opt_in"));
+				user.setLastLogin(resultSet.getDate("last_login"));
+				user.setInvitationKey((UUID) resultSet.getObject("invitation_key"));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			this.close(connection, preparedStatement, resultSet);
+		}
+		
+		if (user != null) {
+			user.setCategories(this.findCategories(user.getId()));
+		}
+			
+		return user;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public User find(UUID invitationKey) {
+		User user = null;
+		Connection connection = null;
+		PreparedStatement preparedStatement = null;
+		ResultSet resultSet = null;
+		
+		try {
+			connection = this.getDataSource().getConnection();
+			preparedStatement = connection.prepareStatement(
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key from task_tracker.user where invitation_key = ? and (deleted is null or deleted = false)");
+			preparedStatement.setObject(1, invitationKey);
+			resultSet = preparedStatement.executeQuery();
+			
+			if (resultSet.next()) {
+				user = new User();
+				user.setId(resultSet.getLong("id"));
+				user.setEmail(resultSet.getString("email"));
+				user.setPhone(resultSet.getString("phone"));
+				user.setFirstName(resultSet.getString("first_name"));
+				user.setLastName(resultSet.getString("last_name"));
+				user.setFacebook(resultSet.getString("facebook"));
+				user.setRecognitionOptIn(resultSet.getBoolean("recognition_opt_in"));
+				user.setLastLogin(resultSet.getDate("last_login"));
+				user.setInvitationKey((UUID) resultSet.getObject("invitation_key"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -123,7 +168,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in from task_tracker.user where email = ? and (deleted is null or deleted = false)");
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key from task_tracker.user where email = ? and (deleted is null or deleted = false)");
 			preparedStatement.setString(1, email);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -136,6 +181,8 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 				user.setLastName(resultSet.getString("last_name"));
 				user.setFacebook(resultSet.getString("facebook"));
 				user.setRecognitionOptIn(resultSet.getBoolean("recognition_opt_in"));
+				user.setLastLogin(resultSet.getDate("last_login"));
+				user.setInvitationKey((UUID) resultSet.getObject("invitation_key"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -178,11 +225,12 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
+		UUID uuid = UUID.randomUUID();
 		
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"insert into task_tracker.user(email, password, role_id, phone, first_name, last_name, facebook, recognition_opt_in) values(?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+				"insert into task_tracker.user(email, password, role_id, phone, first_name, last_name, facebook, recognition_opt_in, invitation_key) values(?, ?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
 			preparedStatement.setString(1, user.getEmail());
 			preparedStatement.setString(2, JDBCRealm.Digest(user.getPassword(), "MD5", "UTF-8"));
 			preparedStatement.setLong(3, STANDARD_USER_ROLE_ID);
@@ -191,12 +239,14 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 			preparedStatement.setString(6, user.getLastName());
 			preparedStatement.setString(7, user.getFacebook());
 			preparedStatement.setBoolean(8, user.isRecognitionOptIn());
+			preparedStatement.setObject(9, uuid);
 			
 			preparedStatement.executeUpdate();
 			resultSet = preparedStatement.getGeneratedKeys();
 			
 			if (resultSet.next()) {
 				user.setId(resultSet.getLong(1));
+				user.setInvitationKey(uuid);
 			}
 			user.setPassword(null); // don't send the password back
 		} catch (SQLException e) {
@@ -257,10 +307,14 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"update task_tracker.user set password= ? where id = ? and password= ?");
+				currentPassword == null
+					? "update task_tracker.user set password= ? where id = ? and password is null"
+					: "update task_tracker.user set password= ? where id = ? and password = ?");
 			preparedStatement.setString(1, JDBCRealm.Digest(newPassword, "MD5", "UTF-8"));
 			preparedStatement.setLong(2, id);
-			preparedStatement.setString(3, JDBCRealm.Digest(currentPassword, "MD5", "UTF-8"));
+			if (currentPassword != null) {
+				preparedStatement.setString(3, JDBCRealm.Digest(currentPassword, "MD5", "UTF-8"));
+			}
 			changed = preparedStatement.executeUpdate() == 1;
 		} catch (SQLException e) {
 			e.printStackTrace();

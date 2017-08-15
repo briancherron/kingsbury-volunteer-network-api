@@ -43,16 +43,20 @@
 			<role-name>standard</role-name>
 		</auth-constraint>
 		<user-data-constraint>
-			<transport-guarantee>NONE</transport-guarantee>
+			<transport-guarantee>CONFIDENTIAL</transport-guarantee>
 		</user-data-constraint>
 	</security-constraint>
 	<security-constraint>
 		<web-resource-collection>
 			<web-resource-name>public api</web-resource-name>
 			<url-pattern>/api/auth/*</url-pattern>
-			<url-pattern>/api/users/</url-pattern>
-			<url-pattern>/api/</url-pattern>
+			<url-pattern>/api/categories/</url-pattern>
+			<url-pattern>/api/invitations/*</url-pattern>
+			<url-pattern>/api/users/join/</url-pattern>
 		</web-resource-collection>
+		<user-data-constraint>
+			<transport-guarantee>CONFIDENTIAL</transport-guarantee>
+		</user-data-constraint>
 	</security-constraint>
 
 	<security-role>

@@ -28,6 +28,7 @@ create table task_tracker.user (
   recognition_opt_in boolean,
   last_login timestamp,
   deleted boolean,
+  invitation_key uuid,
   CONSTRAINT user_email_key UNIQUE (email)
 );
 

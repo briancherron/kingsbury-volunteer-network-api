@@ -9,8 +9,11 @@ import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
  * Represents feedback from form submission.
  * 
  * @author brian
+ * 
  */
 public class Feedback {
+	
+	//TODO: make this class generic, and return feedback from every web service, embedding the necessary object
 	
 	/**
 	 * The success feedback messages.

@@ -1,5 +1,6 @@
 package edu.kingsbury.task_tracker.user;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -106,9 +107,37 @@ public class UserService {
 		User user,
 		@Context HttpServletRequest request) {
 		
+		//TODO: validate the user
+		
 		return Response
 			.status(Response.Status.OK)
 			.entity(this.userDao.update(user))
+			.build();
+	}
+	
+	@Path("/join")
+	@PUT
+	@Produces(MediaType.APPLICATION_JSON) 
+	public Response join(
+		User user,
+		@Context HttpServletRequest request) throws ServletException {
+		
+		// first validate the user
+		//TODO: validate the user
+		
+		// then update the user
+		this.userDao.update(user);
+		
+		// then update the user's password
+		this.userDao.changePassword(user.getId(), user.getPassword(), null);
+		
+		// then log the user in and update the last login
+		request.login(user.getEmail(), user.getPassword());
+		this.userDao.updateLastLogin(user.getEmail());
+		
+		return Response
+			.status(Response.Status.OK)
+			.entity(this.userDao.find(user.getId()))
 			.build();
 	}
 	

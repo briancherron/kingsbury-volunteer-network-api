@@ -393,9 +393,9 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 			this.addCategory(task.getId(), category.getId());
 		}
 		
-		for (TaskUser user : task.getUsers()) {
-			this.addUser(task.getId(), user.getUser().getId(), user.getStatusId());
-		}
+//		for (TaskUser user : task.getUsers()) {
+//			this.addUser(task.getId(), user.getUser().getId(), user.getStatusId());
+//		}
 		
 //		for (Partner partner : task.getPartners()) {
 //			this.addPartner(task.getId(), partner.getId());
@@ -443,10 +443,10 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 			this.addCategory(task.getId(), category.getId());
 		}
 		
-		this.deleteUsers(task.getId());
-		for (TaskUser user : task.getUsers()) {
-			this.addUser(task.getId(), user.getUser().getId(), user.getStatusId());
-		}
+//		this.deleteUsers(task.getId());
+//		for (TaskUser user : task.getUsers()) {
+//			this.addUser(task.getId(), user.getUser().getId(), user.getStatusId());
+//		}
 		
 //		this.deletePartners(task.getId());
 //		for (Partner partner : task.getPartners()) {
@@ -483,11 +483,13 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 	}
 	
 	/**
-	 * Deletes all users from a task.
+	 * Removes a user from a task.
 	 * 
 	 * @param taskId the task id
+	 * @param userId the user id
 	 */
-	public void deleteUsers(long taskId) {
+	@Override
+	public void removeUser(long taskId, long userId) {
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
@@ -495,8 +497,9 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"delete from task_tracker.task_user where task_id = ? ");
+				"delete from task_tracker.task_user where task_id = ? and user_id = ? ");
 			preparedStatement.setLong(1, taskId);
+			preparedStatement.setLong(2, userId);
 			
 			preparedStatement.executeUpdate();
 		} catch (SQLException e) {
@@ -513,7 +516,8 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 	 * @param userId the user id
 	 * @param statusId the task user status id
 	 */
-	private void addUser(long taskId, long userId, long statusId) {
+	@Override
+	public void addUser(long taskId, long userId, long statusId) {
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;

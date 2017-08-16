@@ -2,7 +2,6 @@ package edu.kingsbury.task_tracker.task;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.mail.internet.AddressException;
@@ -23,6 +22,9 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.mail.EmailException;
 
 import edu.kingsbury.task_tracker.Feedback;
+import edu.kingsbury.task_tracker.user.User;
+import edu.kingsbury.task_tracker.user.UserDao;
+import edu.kingsbury.task_tracker.user.UserPostgresDao;
 
 /**
  * Web service for {@link Task}.
@@ -43,11 +45,17 @@ public class TaskService {
 	private TaskValidator taskValidator;
 	
 	/**
+	 * The user dao.
+	 */
+	private UserDao userDao;
+	
+	/**
 	 * Constructor initializes the dao.
 	 */
 	public TaskService() {
 		this.taskDao = new TaskPostgresDao();
 		this.taskValidator = new TaskValidator();
+		this.userDao = new UserPostgresDao();
 	}
 
 	/**
@@ -118,11 +126,6 @@ public class TaskService {
 		Feedback feedback = this.taskValidator.validate(task);
 		if (feedback.isValid()) {
 			Task createdTask = this.taskDao.create(task, request.getUserPrincipal().getName());
-			for (TaskUser user : createdTask.getUsers()) {
-				if (user.getStatusId() == 1) {
-					TaskInvitation.send(createdTask.getId(), createdTask.getName(), user.getUser());
-				}
-			}
 			
 			return Response
 				.status(Response.Status.OK)
@@ -134,6 +137,70 @@ public class TaskService {
 				.entity(feedback)
 				.build();
 		}
+	}
+	
+	@Path("/{id}/add-me")
+	@POST
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response addMe(
+		@PathParam("id") long id,
+		@Context HttpServletRequest request) {
+		
+		User user = this.userDao.find(request.getUserPrincipal().getName());
+		this.taskDao.addUser(id, user.getId(), 2);
+		
+		return Response
+			.status(Response.Status.OK)
+			.entity(new Feedback())
+			.build();
+	}
+	
+	@Path("/{id}/remove-me")
+	@DELETE
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response removeMe(
+		@PathParam("id") long id,
+		@Context HttpServletRequest request) {
+		
+		User user = this.userDao.find(request.getUserPrincipal().getName());
+		this.taskDao.removeUser(id, user.getId());
+		
+		return Response
+			.status(Response.Status.OK)
+			.entity(new Feedback())
+			.build();
+		
+	}
+	
+	/**
+	 * Sends invitations for a task.
+	 * 
+	 * @param id the task id
+	 * @param invitees the users to send invitations to
+	 * @return empty feedback
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 * @throws EmailException
+	 */
+	@POST
+	@Path("/{id}/send-invitations")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response sendInvitations(
+		@PathParam("id") long id, 
+		List<TaskUser> invitees) throws FileNotFoundException, IOException, EmailException {
+		
+		Task task = this.taskDao.find(id);
+		for (TaskUser user : invitees) {
+			if (user.getStatusId() == 1) {
+				TaskInvitation.send(id, task.getName(), user.getUser());
+				this.taskDao.addUser(id, user.getUser().getId(), user.getStatusId());
+			}
+		}
+		
+		return Response
+			.status(Response.Status.OK)
+			.entity(new Feedback())
+			.build();
 	}
 	
 	/**
@@ -157,21 +224,7 @@ public class TaskService {
 		
 		Feedback feedback = this.taskValidator.validate(task);
 		if (feedback.isValid()) {
-			Task previousTask = this.taskDao.find(id);
-			List<String> invitedEmails = new ArrayList<String>();
-			for (TaskUser taskUser : previousTask.getUsers()) {
-				if (taskUser.getStatusId() == 1) {
-					invitedEmails.add(taskUser.getUser().getEmail());
-				}
-			}
-			
 			Task updatedTask = this.taskDao.update(task, request.getUserPrincipal().getName());
-			
-			for (TaskUser taskUser : updatedTask.getUsers()) {
-				if (taskUser.getStatusId() == 1 && !invitedEmails.contains(taskUser.getUser().getEmail())) {
-					TaskInvitation.send(updatedTask.getId(), updatedTask.getName(), taskUser.getUser());
-				}
-			}
 			
 			return Response
 				.status(Response.Status.OK)

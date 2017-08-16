@@ -50,6 +50,23 @@ public interface TaskDao {
 	Task update(Task task, String userEmail);
 	
 	/**
+	 * Adds a user to a task.
+	 * 
+	 * @param taskId the task id
+	 * @param userId the user id
+	 * @param statusId the task user status id
+	 */
+	void addUser(long taskId, long userId, long statusId);
+	
+	/**
+	 * Removes a user from a task.
+	 * 
+	 * @param taskId the task id
+	 * @param userId the user id
+	 */
+	void removeUser(long taskId, long userId);
+	
+	/**
 	 * Deletes a task.
 	 * 
 	 * @param taskId the task id

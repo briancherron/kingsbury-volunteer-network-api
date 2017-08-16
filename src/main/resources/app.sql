@@ -19,7 +19,7 @@ create table  task_tracker.user_role (
 create table task_tracker.user (
   id serial primary key,
   email varchar(100) not null,
-  password varchar(100) not null,
+  password varchar(100),
   role_id integer references task_tracker.user_role on delete cascade,
   phone varchar(10),
   first_name varchar(50) not null,

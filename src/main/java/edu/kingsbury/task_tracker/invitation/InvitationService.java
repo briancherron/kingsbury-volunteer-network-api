@@ -103,11 +103,12 @@ public class InvitationService {
 				email.addTo(invitation.getEmail());
 				email.setSubject("You're invited to join the Kingsbury Community Volunteer Network!");
 				StringBuilder message = new StringBuilder();
-				message.append("<html><body>");
-				message.append("<p>" + invitation.getFirstName() + ",</p>");
-				message.append("<p>You've been invited to join the Kingsbury Community Volunteer Network.<br><br>");
-				message.append("<p>To join, click <a href='" + properties.getProperty("joinUrl") + user.getInvitationKey() + "'>here</a>.<br><br>");
-				message.append("<p>Thanks,<br>Kingsbury Community Volunteer Network</p>");
+				message.append("<html><body style='font-family: sans-serif;'>");
+				message.append("<p style='margin-bottom: 1em;'>" + invitation.getFirstName() + ",</p>");
+				message.append("<p style='margin-bottom: 1em;'>You've been invited to join the Kingsbury Community Volunteer Network.");
+				message.append("<p style='margin-bottom: 1em;'>To join, click <a href='" + properties.getProperty("joinUrl") + user.getInvitationKey() + "'>here</a>.");
+				message.append("<p>Thanks,</p>");
+				message.append("<p style='margin-bottom: 1em;'>Kingsbury Community Volunteer Network</p>");
 				message.append("</body></html>");
 				email.setMsg(message.toString());
 				

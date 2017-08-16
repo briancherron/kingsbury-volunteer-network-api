@@ -26,12 +26,13 @@ public class TaskInvitation {
 		email.addTo(user.getEmail());
 		email.setSubject("You're invited: " + taskName);
 		StringBuilder message = new StringBuilder();
-		message.append("<html><body>");
-		message.append("<p>" + user.getFirstName() + ",</p>");
-		message.append("<p>You've been invited to volunteer for the following task:<br><br>");
-		message.append("<p>" + taskName + "</p><br><br>");
-		message.append("<p>To participate, click <a href='" + properties.getProperty("taskUrl") + taskId  + "'>here</a>.<br><br>");
-		message.append("<p>Thanks,<br>Kingsbury Community Volunteer Network</p>");
+		message.append("<html><body style='font-family: sans-serif;'>");
+		message.append("<p style='margin-bottom: 1em;'>" + user.getFirstName() + ",</p>");
+		message.append("<p style='margin-bottom: 1em;'>You've been invited to volunteer for the following task:");
+		message.append("<p style='margin-bottom: 1em;'>" + taskName + "</p>");
+		message.append("<p style='margin-bottom: 1em;'>To participate, click <a href='" + properties.getProperty("taskUrl") + taskId  + "'>here</a>.");
+		message.append("<p style='margin-bottom: 1em;'>Thanks,</p>");
+		message.append("<p style='margin-bottom: 1em;'>Kingsbury Community Volunteer Network</p>");
 		message.append("</body></html>");
 		email.setMsg(message.toString());
 		

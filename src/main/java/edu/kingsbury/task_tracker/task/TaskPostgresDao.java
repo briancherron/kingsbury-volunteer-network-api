@@ -8,7 +8,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -365,7 +367,10 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 				"insert into task_tracker.task(name, date, description, status, user_added, date_added) values(?, ?, ?, ?, (select id from task_tracker.user where email = ?), current_timestamp)", Statement.RETURN_GENERATED_KEYS);
 			preparedStatement.setString(1, task.getName());
 			if (task.getDate() != null) {
-				preparedStatement.setDate(2, new Date(task.getDate().getTime()));
+				Calendar calendar = Calendar.getInstance();
+				calendar.setTime(task.getDate());
+				calendar.setTimeZone(TimeZone.getTimeZone("GMT"));
+				preparedStatement.setDate(2, new Date(task.getDate().getTime()), calendar);
 			} else {
 				preparedStatement.setNull(2, Types.DATE);
 			}
@@ -413,7 +418,14 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 			preparedStatement = connection.prepareStatement(
 				"update task_tracker.task set name = ?, date = ?, description = ?, status = ?, user_modified = (select id from task_tracker.user where email = ?), date_modified = current_timestamp where id = ? ");
 			preparedStatement.setString(1, task.getName());
-			preparedStatement.setDate(2, new Date(task.getDate().getTime()));
+			if (task.getDate() != null) {
+				Calendar calendar = Calendar.getInstance();
+				calendar.setTime(task.getDate());
+				calendar.setTimeZone(TimeZone.getTimeZone("GMT"));
+				preparedStatement.setDate(2, new Date(task.getDate().getTime()), calendar);
+			} else {
+				preparedStatement.setNull(2, Types.DATE);
+			}
 			preparedStatement.setString(3, task.getDescription());
 			preparedStatement.setLong(4, task.getStatus().getId());
 			preparedStatement.setString(5, userEmail);

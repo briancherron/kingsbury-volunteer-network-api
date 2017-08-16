@@ -131,3 +131,4 @@ insert into task_tracker.task_user_status(task_user_status_name) values('Removed
 insert into task_tracker.user_role(name) values('admin');
 insert into task_tracker.user_role(name) values('standard');
 
+insert into task_tracker.user(email, password, role_id, phone, first_name, last_name, recognition_opt_in) values ('briancherron@gmail.com', '16d7a4fca7442dda3ad93c9a726597e4', 2, '5178799919', 'Brian', 'Herron', true);

@@ -31,11 +31,11 @@ public class Task {
 	/**
 	 * The task date.
 	 */
-	@JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd", timezone="EST")
+	@JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd")
 	private Date date;
 	
 	/**
-	 * The task decription.
+	 * The task description.
 	 */
 	private String description;
 	
@@ -67,6 +67,7 @@ public class Task {
 	/**
 	 * The date the task was added.
 	 */
+	@JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd")
 	private Date dateAdded;
 	
 	/**
@@ -77,6 +78,7 @@ public class Task {
 	/**
 	 * The date the task was last modified.
 	 */
+	@JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd")
 	private Date dateModified;
 	
 	/**

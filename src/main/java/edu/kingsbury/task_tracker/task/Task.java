@@ -5,10 +5,9 @@ import java.util.List;
 
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-
 import edu.kingsbury.task_tracker.category.Category;
 import edu.kingsbury.task_tracker.partner.Partner;
+import edu.kingsbury.task_tracker.task.comment.Comment;
 import edu.kingsbury.task_tracker.user.User;
 
 /**
@@ -31,13 +30,17 @@ public class Task {
 	/**
 	 * The task date.
 	 */
-	@JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd")
 	private Date date;
 	
 	/**
 	 * The task description.
 	 */
 	private String description;
+	
+	/**
+	 * The task notes.
+	 */
+	private String notes;
 	
 	/**
 	 * The task status.
@@ -67,7 +70,6 @@ public class Task {
 	/**
 	 * The date the task was added.
 	 */
-	@JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd")
 	private Date dateAdded;
 	
 	/**
@@ -78,13 +80,22 @@ public class Task {
 	/**
 	 * The date the task was last modified.
 	 */
-	@JsonFormat(shape=JsonFormat.Shape.STRING, pattern="yyyy-MM-dd")
 	private Date dateModified;
 	
 	/**
 	 * The id of the user modifying the task.
 	 */
 	private User userModified;
+	
+	/**
+	 * The audience.
+	 */
+	private Audience audience;
+	
+	/**
+	 * The comments.
+	 */
+	private List<Comment> comments;
 	
 	/**
 	 * {@inheritDoc}
@@ -148,6 +159,20 @@ public class Task {
 	 */
 	public void setDescription(String description) {
 		this.description = description;
+	}
+
+	/**
+	 * @return the notes
+	 */
+	public String getNotes() {
+		return this.notes;
+	}
+
+	/**
+	 * @param notes the notes to set
+	 */
+	public void setNotes(String notes) {
+		this.notes = notes;
 	}
 
 	/**
@@ -274,5 +299,33 @@ public class Task {
 	 */
 	public void setUserModified(User userModified) {
 		this.userModified = userModified;
+	}
+
+	/**
+	 * @return the audience
+	 */
+	public Audience getAudience() {
+		return this.audience;
+	}
+
+	/**
+	 * @param audience the audience to set
+	 */
+	public void setAudience(Audience audience) {
+		this.audience = audience;
+	}
+
+	/**
+	 * @return the comments
+	 */
+	public List<Comment> getComments() {
+		return this.comments;
+	}
+
+	/**
+	 * @param comments the comments to set
+	 */
+	public void setComments(List<Comment> comments) {
+		this.comments = comments;
 	}
 }

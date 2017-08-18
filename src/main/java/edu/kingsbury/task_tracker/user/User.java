@@ -6,6 +6,8 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import edu.kingsbury.task_tracker.category.Category;
 
 /**
@@ -13,6 +15,7 @@ import edu.kingsbury.task_tracker.category.Category;
  * 
  * @author brian
  */
+@JsonIgnoreProperties(value = "admin", allowGetters=true)
 public class User {
 
 	/**
@@ -74,6 +77,18 @@ public class User {
 	 * The invitation key.
 	 */
 	private UUID invitationKey;
+	
+	/**
+	 * The role id.
+	 */
+	private long roleId;
+	
+	/**
+	 * @return whether the user is an admin
+	 */
+	public boolean isAdmin() {
+		return this.roleId == 1;
+	}
 	
 	/**
 	 * {@inheritDoc}
@@ -249,5 +264,19 @@ public class User {
 	 */
 	public void setInvitationKey(UUID invitationKey) {
 		this.invitationKey = invitationKey;
+	}
+
+	/**
+	 * @return the roleId
+	 */
+	public long getRoleId() {
+		return this.roleId;
+	}
+
+	/**
+	 * @param roleId the roleId to set
+	 */
+	public void setRoleId(long roleId) {
+		this.roleId = roleId;
 	}
 }

@@ -132,3 +132,30 @@ insert into task_tracker.user_role(name) values('admin');
 insert into task_tracker.user_role(name) values('standard');
 
 insert into task_tracker.user(email, password, role_id, phone, first_name, last_name, recognition_opt_in) values ('briancherron@gmail.com', '16d7a4fca7442dda3ad93c9a726597e4', 2, '5178799919', 'Brian', 'Herron', true);
+
+
+create table task_tracker.audience (
+    id serial primary key,
+    name varchar(50) not null
+);
+insert into task_tracker.audience(id, name) values (1, 'Administrators');
+insert into task_tracker.audience(id, name) values (2, 'Volunteers');
+
+alter table task_tracker.task add column audience_id integer, add constraint audience_id_fk foreign key (audience_id) references task_tracker.audience(id);
+
+update task_tracker.task set audience_id = 2;
+
+alter table task_tracker.task alter column name type varchar(100);
+alter table task_tracker.task add notes text;
+update task_tracker.task set notes = '';
+update task_tracker.audience set name = 'Volunteers' where id = 2;
+
+create table task_tracker.comment (
+	id serial primary key,
+	task_id integer references task_tracker.task on delete cascade,
+	comment text not null,
+	user_added integer references task_tracker.user on delete cascade,
+	date_added timestamp,
+	date_edited timestamp,
+    deleted boolean
+);

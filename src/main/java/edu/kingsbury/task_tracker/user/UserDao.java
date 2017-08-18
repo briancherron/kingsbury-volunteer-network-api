@@ -3,6 +3,8 @@ package edu.kingsbury.task_tracker.user;
 import java.util.List;
 import java.util.UUID;
 
+import edu.kingsbury.task_tracker.category.Category;
+
 /**
  * Data access object for {@link User}.
  * 
@@ -63,6 +65,10 @@ public interface UserDao {
 	 * @return the user
 	 */
 	User update(User user);
+	
+	void addCategories(long userId, List<Category> categories);
+	
+	void removeCategories(long userId);
 	
 	/**
 	 * Changes a user's password.

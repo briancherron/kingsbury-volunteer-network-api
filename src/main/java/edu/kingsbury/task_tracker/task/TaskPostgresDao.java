@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -33,7 +34,7 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public List<Task> find(Filter filter) {
+	public List<Task> find(Filter filter, boolean adminUser) {
 		List<Task> tasks = new ArrayList<Task>();
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
@@ -41,15 +42,20 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 		int index = 0;
 		
 		StringBuilder query = new StringBuilder("");
-		query.append(" select t.id, t.name, t.date, t.description, t.status as status_id, t.date_added, t.user_added, t.date_modified, t.user_modified, ");
+		query.append(" select t.id, t.name, t.date, t.description, t.status as status_id, t.date_added, t.user_added, t.date_modified, t.user_modified, t.notes, ");
 		query.append("        s.name as status_name, ");
 		query.append("        ua.id as ua_id, ua.email as ua_email, ua.phone as ua_phone, ua.first_name as ua_first_name, ua.last_name as ua_last_name, ua.facebook as ua_facebook, ua.recognition_opt_in as ua_recognition_opt_in, ");
-		query.append("        um.id as um_id, um.email as um_email, um.phone as um_phone, um.first_name as um_first_name, um.last_name as um_last_name, um.facebook as um_facebook, um.recognition_opt_in as um_recognition_opt_in ");
+		query.append("        um.id as um_id, um.email as um_email, um.phone as um_phone, um.first_name as um_first_name, um.last_name as um_last_name, um.facebook as um_facebook, um.recognition_opt_in as um_recognition_opt_in, ");
+		query.append("        a.id as audience_id, a.name as audience_name ");
 		query.append(" from task_tracker.task t");
 		query.append("      left join task_tracker.task_status s on t.status = s.id ");
 		query.append("      left join task_tracker.user ua on t.user_added = ua.id ");
 		query.append("      left join task_tracker.user um on t.user_modified = um.id ");
+		query.append("      left join task_tracker.audience a on t.audience_id = a.id ");
 		query.append(" where (t.deleted is null or t.deleted = false) ");
+		if (!adminUser) {
+			query.append(" and t.audience_id <> 1 ");
+		}
 		if (StringUtils.isNotBlank(filter.getQuery())) {
 			query.append("   and lower(t.name) like lower(?) ");
 		}
@@ -62,6 +68,10 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 		if (filter.getCategoryId() != -1) {
 			query.append("   and exists (select 1 from task_tracker.task_category where category_id = ? and task_id = t.id) ");
 		}
+		if (filter.getAudienceId() != -1) {
+			query.append("   and t.audience_id = ? ");
+		}
+		query.append(" order by t.status asc, t.date asc, t.date_added asc ");
 		
 		try {
 			connection = this.getDataSource().getConnection();
@@ -78,6 +88,9 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 			if (filter.getCategoryId() != -1) {
 				preparedStatement.setLong(++index, filter.getCategoryId());	
 			}
+			if (filter.getAudienceId() != -1) {
+				preparedStatement.setLong(++index, filter.getAudienceId());
+			}
 			
 			resultSet = preparedStatement.executeQuery();
 			
@@ -85,12 +98,16 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 				Task task = new Task();
 				task.setId(resultSet.getLong("id"));
 				task.setName(resultSet.getString("name"));
-				task.setDate(resultSet.getDate("date"));
+				Date date = resultSet.getDate("date");
+				if (date != null) {
+					task.setDate(new java.util.Date(date.getTime()));
+				}
 				task.setDescription(resultSet.getString("description"));
+				task.setNotes(resultSet.getString("notes"));
 				task.setStatus(new TaskStatus());
 				task.getStatus().setId(resultSet.getLong("status_id"));
 				task.getStatus().setName(resultSet.getString("status_name"));
-				task.setDateAdded(resultSet.getDate("date_added"));
+				task.setDateAdded(new java.util.Date(resultSet.getTimestamp("date_added").getTime()));
 				task.setUserAdded(new User());
 				task.getUserAdded().setId(resultSet.getLong("ua_id"));
 				task.getUserAdded().setEmail(resultSet.getString("ua_email"));
@@ -99,7 +116,10 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 				task.getUserAdded().setLastName(resultSet.getString("ua_last_name"));
 				task.getUserAdded().setFacebook(resultSet.getString("ua_facebook"));
 				task.getUserAdded().setRecognitionOptIn(resultSet.getBoolean("ua_recognition_opt_in"));
-				task.setDateModified(resultSet.getDate("date_modified"));
+				Timestamp dateModified = resultSet.getTimestamp("date_modified");
+				if (dateModified != null) {
+					task.setDateModified(new java.util.Date(dateModified.getTime()));
+				}
 				task.setUserModified(new User());
 				task.getUserModified().setId(resultSet.getLong("um_id"));
 				task.getUserModified().setEmail(resultSet.getString("um_email"));
@@ -108,6 +128,9 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 				task.getUserModified().setLastName(resultSet.getString("um_last_name"));
 				task.getUserModified().setFacebook(resultSet.getString("um_facebook"));
 				task.getUserModified().setRecognitionOptIn(resultSet.getBoolean("um_recognition_opt_in"));
+				task.setAudience(new Audience());
+				task.getAudience().setId(resultSet.getLong("audience_id"));
+				task.getAudience().setName(resultSet.getString("audience_name"));
 				
 				tasks.add(task);
 			}
@@ -162,7 +185,7 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public Task find(long id) {
+	public Task find(long id, boolean adminUser) {
 		Task task = null;
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
@@ -170,16 +193,22 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 		
 		try {
 			connection = this.getDataSource().getConnection();
-			preparedStatement = connection.prepareStatement(
-				"select t.id, t.name, t.date, t.description, t.status as status_id, t.date_added, t.user_added, t.date_modified, t.user_modified, t.deleted as task_deleted, "
+			String query = "select t.id, t.name, t.date, t.description, t.status as status_id, t.date_added, t.user_added, t.date_modified, t.user_modified, t.deleted as task_deleted, t.notes, "
 				+ "     s.name as status_name, "
 				+ "     ua.id as ua_id, ua.email as ua_email, ua.phone as ua_phone, ua.first_name as ua_first_name, ua.last_name as ua_last_name, ua.facebook as ua_facebook, ua.recognition_opt_in as ua_recognition_opt_in, "
-				+ "     um.id as um_id, um.email as um_email, um.phone as um_phone, um.first_name as um_first_name, um.last_name as um_last_name, um.facebook as um_facebook, um.recognition_opt_in as um_recognition_opt_in "
+				+ "     um.id as um_id, um.email as um_email, um.phone as um_phone, um.first_name as um_first_name, um.last_name as um_last_name, um.facebook as um_facebook, um.recognition_opt_in as um_recognition_opt_in, "
+				+ "     a.id as audience_id, a.name as audience_name "
 				+ " from task_tracker.task t "
 				+ "      left join task_tracker.task_status s on t.status = s.id "
 				+ "      left join task_tracker.user ua on t.user_added = ua.id "
 				+ "      left join task_tracker.user um on t.user_modified = um.id "
-				+ " where t.id = ? ");
+				+ "      left join task_tracker.audience a on t.audience_id = a.id "
+				+ " where t.id = ? ";
+			if (!adminUser) {
+				query += " and t.audience_id <> 1 ";
+			}
+			preparedStatement = connection.prepareStatement(query);
+			
 			preparedStatement.setLong(1, id);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -187,12 +216,16 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 				task = new Task();
 				task.setId(resultSet.getLong("id"));
 				task.setName(resultSet.getString("name"));
-				task.setDate(resultSet.getDate("date"));
+				Date date = resultSet.getDate("date");
+				if (date != null) {
+					task.setDate(new java.util.Date(date.getTime()));
+				}
 				task.setDescription(resultSet.getString("description"));
+				task.setNotes(resultSet.getString("notes"));
 				task.setStatus(new TaskStatus());
 				task.getStatus().setId(resultSet.getLong("status_id"));
 				task.getStatus().setName(resultSet.getString("status_name"));
-				task.setDateAdded(resultSet.getDate("date_added"));
+				task.setDateAdded(new java.util.Date(resultSet.getTimestamp("date_added").getTime()));
 				task.setUserAdded(new User());
 				task.getUserAdded().setId(resultSet.getLong("ua_id"));
 				task.getUserAdded().setEmail(resultSet.getString("ua_email"));
@@ -201,7 +234,10 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 				task.getUserAdded().setLastName(resultSet.getString("ua_last_name"));
 				task.getUserAdded().setFacebook(resultSet.getString("ua_facebook"));
 				task.getUserAdded().setRecognitionOptIn(resultSet.getBoolean("ua_recognition_opt_in"));
-				task.setDateModified(resultSet.getDate("date_modified"));
+				Timestamp dateModified = resultSet.getTimestamp("date_modified");
+				if (dateModified != null) {
+					task.setDateModified(new java.util.Date(dateModified.getTime()));
+				}
 				task.setUserModified(new User());
 				task.getUserModified().setId(resultSet.getLong("um_id"));
 				task.getUserModified().setEmail(resultSet.getString("um_email"));
@@ -211,6 +247,9 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 				task.getUserModified().setFacebook(resultSet.getString("um_facebook"));
 				task.getUserModified().setRecognitionOptIn(resultSet.getBoolean("um_recognition_opt_in"));
 				task.setDeleted(resultSet.getBoolean("task_deleted"));
+				task.setAudience(new Audience());
+				task.getAudience().setId(resultSet.getLong("audience_id"));
+				task.getAudience().setName(resultSet.getString("audience_name"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -364,7 +403,7 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"insert into task_tracker.task(name, date, description, status, user_added, date_added) values(?, ?, ?, ?, (select id from task_tracker.user where email = ?), current_timestamp)", Statement.RETURN_GENERATED_KEYS);
+				"insert into task_tracker.task(name, date, description, status, audience_id, user_added, date_added, notes) values(?, ?, ?, ?, ?, (select id from task_tracker.user where email = ?), current_timestamp, ?)", Statement.RETURN_GENERATED_KEYS);
 			preparedStatement.setString(1, task.getName());
 			if (task.getDate() != null) {
 				Calendar calendar = Calendar.getInstance();
@@ -376,7 +415,9 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 			}
 			preparedStatement.setString(3, task.getDescription());
 			preparedStatement.setLong(4, task.getStatus().getId());
-			preparedStatement.setString(5, userEmail);
+			preparedStatement.setLong(5, task.getAudience().getId());
+			preparedStatement.setString(6, userEmail);
+			preparedStatement.setString(7,  task.getNotes());
 			preparedStatement.executeUpdate();
 			resultSet = preparedStatement.getGeneratedKeys();
 			
@@ -388,18 +429,6 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 		} finally {
 			this.close(connection, preparedStatement, resultSet);
 		}
-		
-		for (Category category : task.getCategories()) {
-			this.addCategory(task.getId(), category.getId());
-		}
-		
-//		for (TaskUser user : task.getUsers()) {
-//			this.addUser(task.getId(), user.getUser().getId(), user.getStatusId());
-//		}
-		
-//		for (Partner partner : task.getPartners()) {
-//			this.addPartner(task.getId(), partner.getId());
-//		}
 
 		return task;
 	}
@@ -416,7 +445,7 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"update task_tracker.task set name = ?, date = ?, description = ?, status = ?, user_modified = (select id from task_tracker.user where email = ?), date_modified = current_timestamp where id = ? ");
+				"update task_tracker.task set name = ?, date = ?, description = ?, status = ?, audience_id = ?, user_modified = (select id from task_tracker.user where email = ?), date_modified = current_timestamp, notes = ? where id = ? ");
 			preparedStatement.setString(1, task.getName());
 			if (task.getDate() != null) {
 				Calendar calendar = Calendar.getInstance();
@@ -428,8 +457,10 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 			}
 			preparedStatement.setString(3, task.getDescription());
 			preparedStatement.setLong(4, task.getStatus().getId());
-			preparedStatement.setString(5, userEmail);
-			preparedStatement.setLong(6, task.getId());
+			preparedStatement.setLong(5, task.getAudience().getId());
+			preparedStatement.setString(6, userEmail);
+			preparedStatement.setString(7, task.getNotes());
+			preparedStatement.setLong(8, task.getId());
 			
 			preparedStatement.executeUpdate();
 		} catch (SQLException e) {
@@ -438,21 +469,6 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 			this.close(connection, preparedStatement, resultSet);
 		}
 		
-		this.deleteCategories(task.getId());
-		for (Category category : task.getCategories()) {
-			this.addCategory(task.getId(), category.getId());
-		}
-		
-//		this.deleteUsers(task.getId());
-//		for (TaskUser user : task.getUsers()) {
-//			this.addUser(task.getId(), user.getUser().getId(), user.getStatusId());
-//		}
-		
-//		this.deletePartners(task.getId());
-//		for (Partner partner : task.getPartners()) {
-//			this.addPartner(task.getId(), partner.getId());
-//		}
-		
 		return task;
 	}
 
@@ -460,7 +476,7 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public Task delete(long taskId, String userEmail) {
+	public Task delete(long taskId, String userEmail, boolean adminUser) {
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
@@ -479,7 +495,7 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 			this.close(connection, preparedStatement, resultSet);
 		}
 		
-		return this.find(taskId);
+		return this.find(taskId, adminUser);
 	}
 	
 	/**
@@ -539,11 +555,12 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 	}
 	
 	/**
-	 * Deletes all categories from a task.
+	 * Remove all categories from a task.
 	 * 
 	 * @param taskId the task id
 	 */
-	private void deleteCategories(long taskId) {
+	@Override
+	public void removeCategories(long taskId) {
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
@@ -566,59 +583,37 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 	 * Adds a category to a task.
 	 * 
 	 * @param taskId the task id
-	 * @param categoryId the category id
+	 * @param categories the categories
 	 */
-	private void addCategory(long taskId, long categoryId) {
+	@Override
+	public void addCategories(long taskId, List<Category> categories) {
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
 		
-		try {
-			connection = this.getDataSource().getConnection();
-			preparedStatement = connection.prepareStatement(
-				"insert into task_tracker.task_category(task_id, category_id) values (?, ?)");
-			preparedStatement.setLong(1, taskId);
-			preparedStatement.setLong(2, categoryId);
-			
-			preparedStatement.executeUpdate();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			this.close(connection, preparedStatement, resultSet);
-		}
-	}
-
-	/**
-	 * Deletes all partners from a task.
-	 * 
-	 * @param taskId the task id
-	 */
-	private void deletePartners(long taskId) {
-		Connection connection = null;
-		PreparedStatement preparedStatement = null;
-		ResultSet resultSet = null;
-		
-		try {
-			connection = this.getDataSource().getConnection();
-			preparedStatement = connection.prepareStatement(
-				"delete from task_tracker.task_partner where task_id = ? ");
-			preparedStatement.setLong(1, taskId);
-			
-			preparedStatement.executeUpdate();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			this.close(connection, preparedStatement, resultSet);
+		for (Category category : categories) {
+			try {
+				connection = this.getDataSource().getConnection();
+				preparedStatement = connection.prepareStatement(
+					"insert into task_tracker.task_category(task_id, category_id) values (?, ?)");
+				preparedStatement.setLong(1, taskId);
+				preparedStatement.setLong(2, category.getId());
+				
+				preparedStatement.executeUpdate();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				this.close(connection, preparedStatement, resultSet);
+			}
 		}
 	}
 	
 	/**
-	 * Adds a partner to a task.
-	 * 
-	 * @param taskId the task id
-	 * @param partnerId the partner id
+	 * {@inheritDoc}
 	 */
-	private void addPartner(long taskId, long partnerId) {
+	@Override
+	public List<Audience> findAllAudiences() {
+		List<Audience> audiences = new ArrayList<Audience>();
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
@@ -626,15 +621,22 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"insert into task_tracker.task_partner(task_id, partner_id) values (?, ?)");
-			preparedStatement.setLong(1, taskId);
-			preparedStatement.setLong(2, partnerId);
+				"select id, name from task_tracker.audience");
+			resultSet = preparedStatement.executeQuery();
 			
-			preparedStatement.executeUpdate();
+			while (resultSet.next()) {
+				Audience audience = new Audience();
+				audience.setId(resultSet.getLong("id"));
+				audience.setName(resultSet.getString("name"));
+				
+				audiences.add(audience);
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
 			this.close(connection, preparedStatement, resultSet);
 		}
+		
+		return audiences;
 	}
 }

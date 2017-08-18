@@ -14,7 +14,7 @@ public class TaskValidator {
 	/**
 	 * The max allowable task name length.
 	 */
-	private static final int MAX_TASK_NAME_LENGTH = 50;
+	private static final int MAX_TASK_NAME_LENGTH = 100;
 
 	/**
 	 * Validates a task
@@ -25,6 +25,7 @@ public class TaskValidator {
 	public Feedback validate(Task task) {
 		Feedback feedback = new Feedback();
 		this.validateName(feedback, task.getName());
+		this.validateAudience(feedback, task.getAudience());
 		
 		return feedback;
 	}
@@ -37,9 +38,15 @@ public class TaskValidator {
 	 */
 	private void validateName(Feedback feedback, String taskName) {
 		if (StringUtils.isBlank(taskName)) {
-			feedback.getDangerMessages().add("A task name is required.");
-		} else if (StringUtils.length(taskName) > MAX_TASK_NAME_LENGTH) {
+			feedback.getDangerMessages().add("Please enter a task name.");
+		} else if (StringUtils.length(taskName) > 100) {
 			feedback.getDangerMessages().add("A task name cannot be more than " + MAX_TASK_NAME_LENGTH + " characters long.");
+		}
+	}
+	
+	private void validateAudience(Feedback feedback, Audience audience) {
+		if (audience.getId() == 0) {
+			feedback.getDangerMessages().add("Please select an audience.");
 		}
 	}
 }

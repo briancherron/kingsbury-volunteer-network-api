@@ -1,5 +1,7 @@
 package edu.kingsbury.task_tracker.user;
 
+import java.util.List;
+
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
@@ -14,6 +16,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import edu.kingsbury.task_tracker.Feedback;
+import edu.kingsbury.task_tracker.category.Category;
 
 /**
  * Web service for {@link User}.
@@ -128,6 +131,21 @@ public class UserService {
 				.build();
 		}
 		
+	}
+	
+	@Path("/{id}/interests-or-skills")
+	@PUT
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response updateInterestsOrSkills(@PathParam("id") long id,
+		List<Category> categories) {
+	
+		this.userDao.removeCategories(id);
+		this.userDao.addCategories(id, categories);
+		
+		return Response
+			.status(Response.Status.OK)
+			.entity(new Feedback())
+			.build();
 	}
 	
 	@Path("/join")

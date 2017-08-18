@@ -36,6 +36,12 @@ public class Filter {
 	private long categoryId;
 	
 	/**
+	 * The audience id.
+	 */
+	@QueryParam("audienceId")
+	private long audienceId;
+	
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
@@ -97,5 +103,19 @@ public class Filter {
 	 */
 	public void setCategoryId(long categoryId) {
 		this.categoryId = categoryId;
+	}
+
+	/**
+	 * @return the audienceId
+	 */
+	public long getAudienceId() {
+		return this.audienceId;
+	}
+
+	/**
+	 * @param audienceId the audienceId to set
+	 */
+	public void setAudienceId(long audienceId) {
+		this.audienceId = audienceId;
 	}
 }

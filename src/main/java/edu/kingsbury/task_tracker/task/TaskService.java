@@ -1,8 +1,11 @@
 package edu.kingsbury.task_tracker.task;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
+import java.util.Properties;
 
 import javax.mail.internet.AddressException;
 import javax.servlet.http.HttpServletRequest;
@@ -19,9 +22,14 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail.EmailException;
+import org.apache.commons.mail.HtmlEmail;
 
 import edu.kingsbury.task_tracker.Feedback;
+import edu.kingsbury.task_tracker.category.Category;
+import edu.kingsbury.task_tracker.task.comment.CommentDao;
+import edu.kingsbury.task_tracker.task.comment.CommentPostgresDao;
 import edu.kingsbury.task_tracker.user.User;
 import edu.kingsbury.task_tracker.user.UserDao;
 import edu.kingsbury.task_tracker.user.UserPostgresDao;
@@ -33,6 +41,11 @@ import edu.kingsbury.task_tracker.user.UserPostgresDao;
  */
 @Path("/tasks")
 public class TaskService {
+	
+	/**
+	 * The comment dao.
+	 */
+	private CommentDao commentDao;
 	
 	/**
 	 * The task dao.
@@ -53,6 +66,7 @@ public class TaskService {
 	 * Constructor initializes the dao.
 	 */
 	public TaskService() {
+		this.commentDao = new CommentPostgresDao();
 		this.taskDao = new TaskPostgresDao();
 		this.taskValidator = new TaskValidator();
 		this.userDao = new UserPostgresDao();
@@ -65,10 +79,13 @@ public class TaskService {
 	 */
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response find(@BeanParam Filter filter) {
+	public Response find(
+		@BeanParam Filter filter, 
+		@Context HttpServletRequest request) {
+		
 		return Response
 			.status(Response.Status.OK)
-			.entity(this.taskDao.find(filter))
+			.entity(this.taskDao.find(filter, request.isUserInRole("admin")))
 			.build();
 	}
 	
@@ -82,6 +99,16 @@ public class TaskService {
 			.build();
 	}
 	
+	@GET
+	@Path("/audiences")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response findAudiences() {
+		return Response
+			.status(Response.Status.OK)
+			.entity(this.taskDao.findAllAudiences())
+			.build();
+	}
+	
 	/**
 	 * Finds a task.
 	 * 
@@ -92,12 +119,15 @@ public class TaskService {
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response find(
-		@PathParam("id") long id) {
+		@PathParam("id") long id,
+		@Context HttpServletRequest request) {
 		
 		Status status = Response.Status.OK;
-		Task task = this.taskDao.find(id);
-		if (status == null) {
+		Task task = this.taskDao.find(id, request.isUserInRole("admin"));
+		if (task == null) {
 			status = Response.Status.NOT_FOUND;
+		} else {
+			task.setComments(this.commentDao.findComments(task.getId()));
 		}
 		
 		return Response
@@ -139,6 +169,13 @@ public class TaskService {
 		}
 	}
 	
+	/**
+	 * Adds the signed on user to a task.
+	 * 
+	 * @param id the task id
+	 * @param request the request
+	 * @return blank feedback
+	 */
 	@Path("/{id}/add-me")
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
@@ -155,6 +192,13 @@ public class TaskService {
 			.build();
 	}
 	
+	/**
+	 * Removes the signed on user from a task.
+	 * 
+	 * @param id the task id
+	 * @param request the request
+	 * @return blank feedback
+	 */
 	@Path("/{id}/remove-me")
 	@DELETE
 	@Produces(MediaType.APPLICATION_JSON)
@@ -187,15 +231,67 @@ public class TaskService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response sendInvitations(
 		@PathParam("id") long id, 
-		List<TaskUser> invitees) throws FileNotFoundException, IOException, EmailException {
+		TaskInvitation taskInvitation,
+		@Context HttpServletRequest request) throws FileNotFoundException, IOException, EmailException {
 		
-		Task task = this.taskDao.find(id);
-		for (TaskUser user : invitees) {
+		Task task = this.taskDao.find(id, request.isUserInRole("admin"));
+		User loggedOnUser = this.userDao.find(request.getUserPrincipal().getName());
+		for (TaskUser user : taskInvitation.getInvitees()) {
 			if (user.getStatusId() == 1) {
-				TaskInvitation.send(id, task.getName(), user.getUser());
 				this.taskDao.addUser(id, user.getUser().getId(), user.getStatusId());
+				
+				Properties properties = new Properties();
+				properties.load(new FileInputStream(System.getProperty("catalina.home") + File.separator + "/conf/kvn.properties"));
+				
+				HtmlEmail email = new HtmlEmail();
+				email.setHostName("smtp.gmail.com");
+				email.setSmtpPort(465);
+				email.setAuthentication(properties.getProperty("email"), properties.getProperty("password"));
+				email.setSSLOnConnect(true);
+				email.setFrom(properties.getProperty("email"));
+				email.addTo(user.getUser().getEmail());
+				email.setSubject("You're invited: " + task.getName());
+				StringBuilder message = new StringBuilder();
+				message.append("<html><body style='font-family: sans-serif;'>");
+				message.append("<p style='margin-bottom: 1em;'>" + user.getUser().getFirstName() + ",</p>");
+				message.append("<p style='margin-bottom: 1em;'>You've been invited to volunteer for the following task:");
+				message.append("<p style='margin-bottom: 1em;'>" + task.getName() + "</p>");
+				if (StringUtils.isNotBlank(taskInvitation.getMessage())) {
+					message.append("<p>" + loggedOnUser.getFirstName() + " " + loggedOnUser.getLastName() + " says:");
+					message.append("<p>\"" + taskInvitation.getMessage() + "\"</p>");
+				}
+				message.append("<p style='margin-bottom: 1em;'>To participate, click <a href='" + properties.getProperty("taskUrl") + task.getId()  + "'>here</a>.");
+				message.append("<p style='margin-bottom: 1em;'>Thanks,</p>");
+				message.append("<p style='margin-bottom: 1em;'>Kingsbury Community Volunteer Network</p>");
+				message.append("</body></html>");
+				email.setMsg(message.toString());
+				
+				email.send();
 			}
 		}
+		
+		return Response
+			.status(Response.Status.OK)
+			.entity(new Feedback())
+			.build();
+	}
+	
+	/**
+	 * Updates the interests or skills for a task.
+	 * 
+	 * @param id the task id
+	 * @param categories the categories 
+	 * @return blank feedback
+	 */
+	@Path("/{id}/interests-or-skills")
+	@PUT
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response updateInterestsOrSkills(
+		@PathParam("id") long id,
+		List<Category> categories) {
+		
+		this.taskDao.removeCategories(id);
+		this.taskDao.addCategories(id, categories);
 		
 		return Response
 			.status(Response.Status.OK)
@@ -252,7 +348,7 @@ public class TaskService {
 		@PathParam("id") long id,
 		@Context HttpServletRequest request) {
 		
-		Task task = this.taskDao.delete(id, request.getUserPrincipal().getName());
+		Task task = this.taskDao.delete(id, request.getUserPrincipal().getName(), request.isUserInRole("admin"));
 		return Response
 			.status(task.isDeleted() ? Response.Status.OK : Response.Status.NOT_FOUND)
 			.entity(task)

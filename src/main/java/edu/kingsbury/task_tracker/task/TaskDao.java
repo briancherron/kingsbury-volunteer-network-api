@@ -2,6 +2,8 @@ package edu.kingsbury.task_tracker.task;
 
 import java.util.List;
 
+import edu.kingsbury.task_tracker.category.Category;
+
 /**
  * Data access object for {@link Task}.
  * 
@@ -12,9 +14,11 @@ public interface TaskDao {
 	/**
 	 * Finds all tasks.
 	 * 
+	 * @param filter the task list filter
+	 * @param adminUser whether the logged in user is an admin user
 	 * @return all tasks
 	 */
-	List<Task> find(Filter filter);
+	List<Task> find(Filter filter, boolean adminUser);
 	
 	/**
 	 * Finds all task statuses.
@@ -24,12 +28,20 @@ public interface TaskDao {
 	List<TaskStatus> findAllStatuses();
 	
 	/**
+	 * Finds all audiences.
+	 * 
+	 * @return all audiences
+	 */
+	List<Audience> findAllAudiences();
+	
+	/**
 	 * Finds a task by id.
 	 * 
 	 * @param id the task id
+	 * @param adminUser whether the logged in user is an admin user
 	 * @return the task
 	 */
-	Task find(long id);
+	Task find(long id, boolean adminUser);
 	
 	/**
 	 * Creates a task.
@@ -48,6 +60,21 @@ public interface TaskDao {
 	 * @return the updated task
 	 */
 	Task update(Task task, String userEmail);
+	
+	/**
+	 * Adds categories to a task.
+	 * 
+	 * @param taskId the task id
+	 * @param categories the categories to add
+	 */
+	void addCategories(long taskId, List<Category> categories);
+	
+	/**
+	 * Removes categories from  a task.
+	 * 
+	 * @param taskId the task id
+	 */
+	void removeCategories(long taskId);
 	
 	/**
 	 * Adds a user to a task.
@@ -71,7 +98,8 @@ public interface TaskDao {
 	 * 
 	 * @param taskId the task id
 	 * @param userEmail the email of the user deleting the task
+	 * @param adminUser whether the logged in user is an admin
 	 * @return <code>true</code> if the task is deleted
 	 */
-	Task delete(long taskId, String userEmail);
+	Task delete(long taskId, String userEmail, boolean adminUser);
 }

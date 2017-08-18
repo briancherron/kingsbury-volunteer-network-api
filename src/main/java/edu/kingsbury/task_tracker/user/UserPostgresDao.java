@@ -84,7 +84,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key from task_tracker.user where id = ? and (deleted is null or deleted = false)");
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key, role_id from task_tracker.user where id = ? and (deleted is null or deleted = false)");
 			preparedStatement.setLong(1, id);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -99,6 +99,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 				user.setRecognitionOptIn(resultSet.getBoolean("recognition_opt_in"));
 				user.setLastLogin(resultSet.getDate("last_login"));
 				user.setInvitationKey((UUID) resultSet.getObject("invitation_key"));
+				user.setRoleId(resultSet.getLong("role_id"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -126,7 +127,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key from task_tracker.user where invitation_key = ? and (deleted is null or deleted = false)");
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key, role_id from task_tracker.user where invitation_key = ? and (deleted is null or deleted = false)");
 			preparedStatement.setObject(1, invitationKey);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -141,6 +142,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 				user.setRecognitionOptIn(resultSet.getBoolean("recognition_opt_in"));
 				user.setLastLogin(resultSet.getDate("last_login"));
 				user.setInvitationKey((UUID) resultSet.getObject("invitation_key"));
+				user.setRoleId(resultSet.getLong("role_id"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -168,7 +170,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key from task_tracker.user where email = ? and (deleted is null or deleted = false)");
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key, role_id from task_tracker.user where email = ? and (deleted is null or deleted = false)");
 			preparedStatement.setString(1, email);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -183,6 +185,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 				user.setRecognitionOptIn(resultSet.getBoolean("recognition_opt_in"));
 				user.setLastLogin(resultSet.getDate("last_login"));
 				user.setInvitationKey((UUID) resultSet.getObject("invitation_key"));
+				user.setRoleId(resultSet.getLong("role_id"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -286,11 +289,6 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 			this.close(connection, preparedStatement, resultSet);
 		}
 		
-		this.deleteCategories(user.getId());
-		for (Category category : user.getCategories()) {
-			this.addCategory(user.getId(), category.getId());
-		}
-		
 		return user;
 	}
 	
@@ -355,7 +353,8 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 	 * 
 	 * @param userId the user id
 	 */
-	private void deleteCategories(long userId) {
+	@Override
+	public void removeCategories(long userId) {
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
@@ -410,28 +409,31 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 	}
 	
 	/**
-	 * Adds a category to a user.
+	 * Adds categories to a user.
 	 * 
 	 * @param userId the user id
-	 * @param categoryId the category id
+	 * @param categoryies the categories
 	 */
-	private void addCategory(long userId, long categoryId) {
+	@Override
+	public void addCategories(long userId, List<Category> categories) {
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
 		
-		try {
-			connection = this.getDataSource().getConnection();
-			preparedStatement = connection.prepareStatement(
-				"insert into task_tracker.user_category(category_id, user_id) values(?, ?)");
-			preparedStatement.setLong(1, categoryId);
-			preparedStatement.setLong(2, userId);
-			
-			preparedStatement.executeUpdate();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			this.close(connection, preparedStatement, resultSet);
+		for (Category category : categories) {
+			try {
+				connection = this.getDataSource().getConnection();
+				preparedStatement = connection.prepareStatement(
+					"insert into task_tracker.user_category(category_id, user_id) values(?, ?)");
+				preparedStatement.setLong(1, category.getId());
+				preparedStatement.setLong(2, userId);
+				
+				preparedStatement.executeUpdate();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				this.close(connection, preparedStatement, resultSet);
+			}
 		}
 	}
 }

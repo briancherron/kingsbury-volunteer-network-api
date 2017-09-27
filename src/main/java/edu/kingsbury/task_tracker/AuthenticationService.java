@@ -73,19 +73,28 @@ public class AuthenticationService {
 		User user,
 		@Context HttpServletRequest request) {
 		
-		boolean success = false;
+		boolean success;
+		User loggedInUser;
 		
 		try {
 			request.login(user.getEmail(), user.getPassword());
-			this.userDao.updateLastLogin(request.getUserPrincipal().getName());
-			success = true;
+			loggedInUser = this.userDao.find(request.getUserPrincipal().getName());
+			if (user.isDeleted()) {
+				success = false;
+				loggedInUser = null;
+			} else {
+				this.userDao.updateLastLogin(request.getUserPrincipal().getName());
+				success = true;
+			}
 		} catch (ServletException e) {
+			success = false;
+			loggedInUser = null;
 			e.printStackTrace();
 		}
 		
 		return Response
 			.status(success ? Response.Status.OK : Response.Status.NOT_FOUND)
-			.entity(success ? this.userDao.find(request.getUserPrincipal().getName()) : null)
+			.entity(loggedInUser)
 			.build();
 	}
 	

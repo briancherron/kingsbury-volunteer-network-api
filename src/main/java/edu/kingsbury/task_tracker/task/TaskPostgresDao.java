@@ -320,7 +320,8 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 				"select u.id, u.email, u.phone, u.first_name, u.last_name, u.facebook, u.recognition_opt_in, tu.status_id "
 				+ " from task_tracker.user u "
 				+ "      join task_tracker.task_user tu on u.id = tu.user_id "
-				+ " where tu.task_id = ? ");
+				+ " where tu.task_id = ? "
+				+ " order by u.last_name, u.first_name asc ");
 			preparedStatement.setLong(1, taskId);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -537,6 +538,20 @@ public class TaskPostgresDao extends PostgresDao implements TaskDao {
 		Connection connection = null;
 		PreparedStatement preparedStatement = null;
 		ResultSet resultSet = null;
+		
+		try {
+			connection = this.getDataSource().getConnection();
+			preparedStatement = connection.prepareStatement(
+				"delete from task_tracker.task_user where task_id = ? and user_id = ?");
+			preparedStatement.setLong(1, taskId);
+			preparedStatement.setLong(2, userId);
+			
+			preparedStatement.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			this.close(connection, preparedStatement, resultSet);
+		}
 		
 		try {
 			connection = this.getDataSource().getConnection();

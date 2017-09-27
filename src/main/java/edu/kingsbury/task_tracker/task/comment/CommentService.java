@@ -80,7 +80,6 @@ public class CommentService {
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 */
-	@Path("/")
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response add(
@@ -96,7 +95,11 @@ public class CommentService {
 			List<Comment> comments = this.commentDao.findComments(task.getId());
 			User loggedOnUser = this.userDao.find(request.getUserPrincipal().getName());
 			Set<String> recipients = new TreeSet<String>();
-			recipients.add(task.getUserAdded().getEmail());
+			
+			// add the logged on user, task users, and previous commenters (but not if they match the logged on person making the comment...they don't need notified)
+			if (loggedOnUser.getId() != task.getUserAdded().getId()) {
+				recipients.add(task.getUserAdded().getEmail());
+			}
 			for (TaskUser user : task.getUsers()) {
 				if (loggedOnUser.getId() != user.getUser().getId()) {
 					recipients.add(user.getUser().getEmail());
@@ -108,30 +111,31 @@ public class CommentService {
 				}
 			}
 			
-			Properties properties = new Properties();
-			properties.load(new FileInputStream(System.getProperty("catalina.home") + File.separator + "/conf/kvn.properties"));
-			
-			HtmlEmail email = new HtmlEmail();
-			email.setHostName("smtp.gmail.com");
-			email.setSmtpPort(465);
-			email.setAuthentication(properties.getProperty("email"), properties.getProperty("password"));
-			email.setSSLOnConnect(true);
-			email.setFrom(properties.getProperty("email"));
-			email.addTo(loggedOnUser.getEmail());
-			email.addBcc(recipients.toArray(new String[] {}));
-			email.setSubject("Comment added: " + task.getName());
-			StringBuilder message = new StringBuilder();
-			message.append("<html><body style='font-family: sans-serif;'>");
-			message.append("<p style='margin-bottom: 1em;'>A comment has been added to task: " + task.getName() + "</p>");
-			message.append("<p>" + loggedOnUser.getFirstName() + " " + loggedOnUser.getLastName() + " says:");
-			message.append("<p>\"" + comment.getText() + "\"</p>");
-			message.append("<p style='margin-bottom: 1em;'>To view the comment, click <a href='" + properties.getProperty("taskUrl") + task.getId()  + "'>here</a>.");
-			message.append("<p style='margin-bottom: 1em;'>Thanks,</p>");
-			message.append("<p style='margin-bottom: 1em;'>Kingsbury Community Volunteer Network</p>");
-			message.append("</body></html>");
-			email.setMsg(message.toString());
-			
-			email.send();
+			if (!recipients.isEmpty()) {
+				Properties properties = new Properties();
+				properties.load(new FileInputStream(System.getProperty("catalina.home") + File.separator + "/conf/kvn.properties"));
+				
+				HtmlEmail email = new HtmlEmail();
+				email.setHostName("smtp.gmail.com");
+				email.setSmtpPort(465);
+				email.setAuthentication(properties.getProperty("email"), properties.getProperty("password"));
+				email.setSSLOnConnect(true);
+				email.setFrom(properties.getProperty("email"));
+				email.addBcc(recipients.toArray(new String[] {}));
+				email.setSubject("Comment added: " + task.getName());
+				StringBuilder message = new StringBuilder();
+				message.append("<html><body style='font-family: sans-serif;'>");
+				message.append("<p style='margin-bottom: 1em;'>A comment has been added to task: " + task.getName() + "</p>");
+				message.append("<p>" + loggedOnUser.getFirstName() + " " + loggedOnUser.getLastName() + " says:");
+				message.append("<p>\"" + comment.getText() + "\"</p>");
+				message.append("<p style='margin-bottom: 1em;'>To view the comment, click <a href='" + properties.getProperty("taskUrl") + task.getId()  + "'>here</a>.");
+				message.append("<p style='margin-bottom: 1em;'>Thanks,</p>");
+				message.append("<p style='margin-bottom: 1em;'>Kingsbury Community Volunteer Network</p>");
+				message.append("</body></html>");
+				email.setMsg(message.toString());
+				
+				email.send();
+			}
 			
 			return Response
 				.status(Response.Status.OK)

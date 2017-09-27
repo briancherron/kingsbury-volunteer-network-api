@@ -29,7 +29,14 @@ create table task_tracker.user (
   last_login timestamp,
   deleted boolean,
   invitation_key uuid,
+  authorized_to_change_introduction boolean,
   CONSTRAINT user_email_key UNIQUE (email)
+);
+
+create table task_tracker.introduction (
+    id serial,
+	text text,
+    date_added timestamp
 );
 
 create table  task_tracker.user_category (
@@ -158,4 +165,8 @@ create table task_tracker.comment (
 	date_added timestamp,
 	date_edited timestamp,
     deleted boolean
+);
+
+create table task_tracker.introduction (
+	text text 
 );

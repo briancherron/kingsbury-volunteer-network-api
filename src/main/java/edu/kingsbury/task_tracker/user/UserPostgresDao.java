@@ -43,7 +43,8 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in from task_tracker.user where (deleted is null or deleted = false)");
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in from task_tracker.user where (deleted is null or deleted = false) and email <> 'kingsburyvolunteernetwork@gmail.com' "
+				+ " order by last_name, first_name asc ");
 			resultSet = preparedStatement.executeQuery();
 			
 			while (resultSet.next()) {
@@ -84,7 +85,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key, role_id from task_tracker.user where id = ? and (deleted is null or deleted = false)");
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key, role_id, authorized_to_change_introduction from task_tracker.user where id = ? and (deleted is null or deleted = false)");
 			preparedStatement.setLong(1, id);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -100,6 +101,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 				user.setLastLogin(resultSet.getDate("last_login"));
 				user.setInvitationKey((UUID) resultSet.getObject("invitation_key"));
 				user.setRoleId(resultSet.getLong("role_id"));
+				user.setAuthorizedToChangeIntroduction(resultSet.getBoolean("authorized_to_change_introduction"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -127,7 +129,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key, role_id from task_tracker.user where invitation_key = ? and (deleted is null or deleted = false)");
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key, role_id, authorized_to_change_introduction from task_tracker.user where invitation_key = ? and (deleted is null or deleted = false)");
 			preparedStatement.setObject(1, invitationKey);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -143,6 +145,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 				user.setLastLogin(resultSet.getDate("last_login"));
 				user.setInvitationKey((UUID) resultSet.getObject("invitation_key"));
 				user.setRoleId(resultSet.getLong("role_id"));
+				user.setAuthorizedToChangeIntroduction(resultSet.getBoolean("authorized_to_change_introduction"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -170,7 +173,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 		try {
 			connection = this.getDataSource().getConnection();
 			preparedStatement = connection.prepareStatement(
-				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key, role_id from task_tracker.user where email = ? and (deleted is null or deleted = false)");
+				"select id, email, phone, first_name, last_name, facebook, recognition_opt_in, last_login, invitation_key, role_id, authorized_to_change_introduction from task_tracker.user where email = ? and (deleted is null or deleted = false)");
 			preparedStatement.setString(1, email);
 			resultSet = preparedStatement.executeQuery();
 			
@@ -186,6 +189,7 @@ public class UserPostgresDao extends PostgresDao implements UserDao {
 				user.setLastLogin(resultSet.getDate("last_login"));
 				user.setInvitationKey((UUID) resultSet.getObject("invitation_key"));
 				user.setRoleId(resultSet.getLong("role_id"));
+				user.setAuthorizedToChangeIntroduction(resultSet.getBoolean("authorized_to_change_introduction"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

@@ -84,6 +84,11 @@ public class User {
 	private long roleId;
 	
 	/**
+	 * Whether the user is authorized to change the introduction.
+	 */
+	private boolean authorizedToChangeIntroduction;
+	
+	/**
 	 * @return whether the user is an admin
 	 */
 	public boolean isAdmin() {
@@ -278,5 +283,19 @@ public class User {
 	 */
 	public void setRoleId(long roleId) {
 		this.roleId = roleId;
+	}
+
+	/**
+	 * @return the authorizedToChangeIntroduction
+	 */
+	public boolean isAuthorizedToChangeIntroduction() {
+		return this.authorizedToChangeIntroduction;
+	}
+
+	/**
+	 * @param authorizedToChangeIntroduction the authorizedToChangeIntroduction to set
+	 */
+	public void setAuthorizedToChangeIntroduction(boolean authorizedToChangeIntroduction) {
+		this.authorizedToChangeIntroduction = authorizedToChangeIntroduction;
 	}
 }

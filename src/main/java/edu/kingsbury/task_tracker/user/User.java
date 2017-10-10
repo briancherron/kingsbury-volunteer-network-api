@@ -89,6 +89,11 @@ public class User {
 	private boolean authorizedToChangeIntroduction;
 	
 	/**
+	 * The password reset key.
+	 */
+	private int passwordResetKey;
+	
+	/**
 	 * @return whether the user is an admin
 	 */
 	public boolean isAdmin() {
@@ -297,5 +302,19 @@ public class User {
 	 */
 	public void setAuthorizedToChangeIntroduction(boolean authorizedToChangeIntroduction) {
 		this.authorizedToChangeIntroduction = authorizedToChangeIntroduction;
+	}
+
+	/**
+	 * @return the passwordResetKey
+	 */
+	public int getPasswordResetKey() {
+		return this.passwordResetKey;
+	}
+
+	/**
+	 * @param passwordResetKey the passwordResetKey to set
+	 */
+	public void setPasswordResetKey(int passwordResetKey) {
+		this.passwordResetKey = passwordResetKey;
 	}
 }

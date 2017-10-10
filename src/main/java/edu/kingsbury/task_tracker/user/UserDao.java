@@ -81,6 +81,16 @@ public interface UserDao {
 	boolean changePassword(long id, String newPassword, String currentPassword);
 	
 	/**
+	 * Resets a user's password.
+	 * 
+	 * @param id the user id
+	 * @param newPassword the new password
+	 * @param passwordResetKey the password reset key
+	 * @return <code>true</code> if the password is reset
+	 */
+	boolean resetPassword(long id, String newPassword, int passwordResetKey);
+	
+	/**
 	 * Deletes a user.
 	 * 
 	 * @param id the user id

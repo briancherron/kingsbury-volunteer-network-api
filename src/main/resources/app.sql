@@ -30,6 +30,7 @@ create table task_tracker.user (
   deleted boolean,
   invitation_key uuid,
   authorized_to_change_introduction boolean,
+  password_reset_key integer,
   CONSTRAINT user_email_key UNIQUE (email)
 );
 
